@@ -1,0 +1,6 @@
+streamlit
+pandas
+openai-agents
+openpyxl
+scipy
+openai
