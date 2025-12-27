@@ -1,0 +1,7 @@
+Date,Branch,Product,Revenue,Units_Sold
+2025-12-01,New York,Latte,500,100
+2025-12-02,New York,Espresso,450,90
+2025-12-03,Chicago,Latte,,110
+2025-12-04,Chicago,Cappuccino,600,120
+2025-12-05,New York,Latte,15000,3000
+2025-12-06,Austin,Espresso,550,110

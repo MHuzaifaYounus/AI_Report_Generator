@@ -2,12 +2,11 @@ import streamlit as st
 import pandas as pd
 import io
 import os
-import json
+import time
 from dotenv import load_dotenv
 
 # 1. Load Environment Variables
 load_dotenv()
-
 
 # 2. Imports
 from src.data_processor import process_csv
@@ -26,16 +25,16 @@ st.set_page_config(
 def get_cached_insight(stats, insight_type):
     return get_ai_insight(stats, insight_type)
 
-# --- CSS STYLING (DARK MODE COMPATIBLE & COMPACT) ---
+# --- CSS STYLING (FIXED PADDING & LAYOUT) ---
 st.markdown("""
 <style>
     /* 1. MOVE EVERYTHING UP */
     .block-container {
-        padding-top: 6rem !important;
+        padding-top: 3rem !important;
         padding-bottom: 0rem !important;
     }
     
-    /* 2. HEADER TYPOGRAPHY (Theme Aware) */
+    /* 2. HEADER TYPOGRAPHY */
     .main-header {
         font-size: 2rem;
         font-weight: 800;
@@ -50,119 +49,78 @@ st.markdown("""
         margin-bottom: 15px;
     }
 
-    /* 3. TABS STYLING (Separated & Bordered) */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px; /* Separation between tabs */
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 45px;
-        white-space: pre-wrap;
-        border-radius: 8px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-        padding-left: 20px;
-        padding-right: 20px;
-        border: 1px solid #475569; /* Add Border */
-        background-color: rgba(255,255,255,0.02);
-        transition: all 0.3s;
-    }
-    .stTabs [data-baseweb="tab"]:hover {
-        border-color: #4ade80;
-        background-color: rgba(255,255,255,0.05);
-    }
-    .stTabs [aria-selected="true"] {
-        border-color: #3b82f6 !important; /* Active Tab Highlight */
-        background-color: rgba(59, 130, 246, 0.1) !important;
-    }
-    
-    /* 4. OUTPUT BOX (Dark Mode Friendly & Spacious) */
+    /* 3. OUTPUT BOX (Dark Mode Friendly) */
     .insight-box {
         padding: 25px;
         border-radius: 8px;
-        border: 1px solid #475569; /* Subtle border */
-        border: 1px solid #475569; /* Subtle border */
-        background-color: rgba(255, 255, 255, 0.03); /* Tiny bit of lightness */
-        min-height: 450px; /* Adjusted height */
+        border: 1px solid #475569;
+        background-color: rgba(255, 255, 255, 0.03); 
+        min-height: 200px;
         margin-bottom: 15px;
-        border-left: 5px solid #3b82f6; /* Default Blue for Trends */
+        border-left: 5px solid #3b82f6;
         font-size: 1.1rem;
         line-height: 1.6;
+        animation: fadeIn 0.5s ease-in-out;
     }
     .insight-anomalies {
-        border-left: 5px solid #ef4444 !important; /* Red for Anomalies */
+        border-left: 5px solid #ef4444 !important;
     }
     .insight-actions {
-        border-left: 5px solid #22c55e !important; /* Green for Actions */
+        border-left: 5px solid #22c55e !important;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 5. BUTTONS (Compact & High Vis) */
-    .stButton button {
-        height: 50px;
-        font-weight: 700;
-        border-radius: 8px;
-        border: 1px solid #475569;
-        transition: all 0.2s;
-    }
-    .stButton button:hover {
-        border-color: #4ade80;
-        color: #4ade80;
-    }
-
-    /* 6. CONVERT RADIO TO TABS (Custom CSS) */
+    /* 4. CUSTOM TABS (RADIO BUTTONS) - FIXED PADDING */
     div[role="radiogroup"] {
         display: flex;
         gap: 10px;
         width: 100%;
+        margin-bottom: 15px;
     }
     div[role="radiogroup"] > label {
-        flex: 1; /* Make tabs equal width */
+        flex: 1; 
         background: rgba(255,255,255,0.03);
-        padding: 12px 10px; /* Reduced side padding slightly */
+        padding: 15px 10px;  /* Reduced side padding to 0, relies on Flex center */
         border-radius: 8px;
         border: 1px solid #475569;
         cursor: pointer;
         transition: all 0.3s;
         text-align: center;
-        display: flex; /* Critical for centering and justify-content */
+        display: flex; 
         justify-content: center;
         align-items: center;
         font-weight: 600;
-        white-space: nowrap; /* Prevent wrapping */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        white-space: nowrap !important; /* <--- FIX: FORCE SINGLE LINE */
     }
     div[role="radiogroup"] > label:hover {
         border-color: #4ade80;
         background: rgba(255,255,255,0.05);
+        transform: translateY(-2px);
     }
     /* Highlight Selected Tab */
     div[role="radiogroup"] > label[data-checked="true"] {
         background: rgba(59, 130, 246, 0.15) !important;
         border-color: #3b82f6 !important;
         color: #ffff !important;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
     }
-    /* Hide the default radio circle safely */
+    /* Hide radio circle */
     div[role="radiogroup"] label > div:first-child {
-        width: 0px !important;
-        height: 0px !important;
-        opacity: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        display: none;
     }
-    /* Ensure text is visible and centered */
-    div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] {
-        color: #cbd5e1 !important; /* Light text */
-        display: block;
-    }
+    /* Text Styling */
     div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {
-        font-size: 1.1rem;
+        font-size: 1rem; /* Slightly smaller text to fit better */
         margin: 0;
         font-weight: 600;
     }
-    /* Active Tab Text Color */
-    div[role="radiogroup"] > label[data-checked="true"] div[data-testid="stMarkdownContainer"] {
-        color: #ffffff !important;
-    }
-    
-    /* Hide the default Streamlit footer/menu for cleanliness */
+
+    /* Hide Footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 </style>
@@ -188,7 +146,6 @@ with st.sidebar:
     if st.session_state['stats_dict']:
         stats = st.session_state['stats_dict']
         st.caption("DATA DNA")
-        # Compact Metrics
         c1, c2 = st.columns(2)
         c1.metric("Rows", stats['overall_summary']['row_count'])
         c2.metric("Cols", stats['overall_summary']['column_count'])
@@ -213,64 +170,91 @@ if uploaded_file is not None:
             try:
                 st.session_state['stats_dict'] = process_csv(io.BytesIO(uploaded_file.getvalue()))
                 st.session_state['uploaded_file_id'] = file_id 
+                # Reset results
+                st.session_state['trend_result'] = None
+                st.session_state['anomaly_result'] = None
+                st.session_state['action_result'] = None
                 get_cached_insight.clear()
             except Exception as e:
                 st.error(f"Error: {e}")
 
 # --- DASHBOARD LAYOUT ---
 
-# 1. COMPACT HEADER
+# 1. HEADER
 st.markdown('<div class="main-header">AI Workflow & Report Generator</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Strategic Intelligence in <b>< 2 Seconds</b></div>', unsafe_allow_html=True)
 
 if st.session_state['stats_dict']:
-    # File Badge (Compact)
+    # File Badge
     st.caption(f"✅ Active File: **{uploaded_file.name}**")
 
-    # 2. MIDDLE SECTION: CUSTOM TABS (Radio)
-    # Using radio allows us to detect the "Click" and run logic *only* for the active tab
+    # 2. MIDDLE SECTION: AGENT SELECTOR
     selected_tab = st.radio(
-        "Navigation", 
+        "Select Agent:", 
         ["📈 Trends Analyst", "🛡️ Anomaly Hunter", "♟️ The Strategist"], 
         horizontal=True, 
+        index=None, 
         label_visibility="collapsed"
     )
     
-    # 3. CONTENT LOGIC (Triggered by selection)
-    st.markdown("---") # Visual separator
+    st.markdown("---") 
 
-    if selected_tab == "📈 Trends Analyst":
-        # Check if we need to generate
+    # 3. CONTENT LOGIC
+    
+    # State 1: Nothing Selected
+    if selected_tab is None:
+        st.markdown(
+            """
+            <div style="text-align: center; padding: 40px; opacity: 0.7; border: 2px dashed #475569; border-radius: 10px;">
+                <h3>🤖 Multi-Agent Swarm Ready</h3>
+                <p>Select an Agent above to activate intelligence.</p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+
+    # State 2: Trends Selected
+    elif selected_tab == "📈 Trends Analyst":
         if not st.session_state['trend_result']:
-             with st.spinner("🤖 Analyzing Trends..."):
-                st.session_state['trend_result'] = get_cached_insight(st.session_state['stats_dict'], "Trends")
-                st.rerun() # Rerun to show content
+             with st.spinner("📈 Analyst is identifying growth patterns..."):
+                result = get_cached_insight(st.session_state['stats_dict'], "Trends")
+                # Handle 429 Error Gracefully
+                if "429" in result or "quota" in result.lower():
+                    st.warning("⚠️ **Demo Quota Exceeded:** Please wait 60 seconds or restart the app.")
+                else:
+                    st.session_state['trend_result'] = result
+                    st.rerun()
         
-        # Show Content
-        content = st.session_state['trend_result']
-        st.markdown(f'<div class="insight-box">{content}</div>', unsafe_allow_html=True)
+        if st.session_state['trend_result']:
+            st.markdown(f'<div class="insight-box">{st.session_state["trend_result"]}</div>', unsafe_allow_html=True)
 
+    # State 3: Anomalies Selected
     elif selected_tab == "🛡️ Anomaly Hunter":
-        # Check if we need to generate
         if not st.session_state['anomaly_result']:
-             with st.spinner("🛡️ Hunting Anomalies..."):
-                st.session_state['anomaly_result'] = get_cached_insight(st.session_state['stats_dict'], "Anomalies")
-                st.rerun()
+             with st.spinner("🛡️ Hunter is scanning for z-score outliers..."):
+                result = get_cached_insight(st.session_state['stats_dict'], "Anomalies")
+                if "429" in result or "quota" in result.lower():
+                    st.warning("⚠️ **Demo Quota Exceeded:** Please wait 60 seconds or restart the app.")
+                else:
+                    st.session_state['anomaly_result'] = result
+                    st.rerun()
         
-        # Show Content
-        content = st.session_state['anomaly_result']
-        st.markdown(f'<div class="insight-box insight-anomalies">{content}</div>', unsafe_allow_html=True)
+        if st.session_state['anomaly_result']:
+            st.markdown(f'<div class="insight-box insight-anomalies">{st.session_state["anomaly_result"]}</div>', unsafe_allow_html=True)
 
+    # State 4: Actions Selected
     elif selected_tab == "♟️ The Strategist":
-        # Check if we need to generate
         if not st.session_state['action_result']:
-             with st.spinner("♟️ Generating Strategy..."):
-                st.session_state['action_result'] = get_cached_insight(st.session_state['stats_dict'], "Actions")
-                st.rerun()
+             with st.spinner("♟️ CEO is formulating strategy..."):
+                result = get_cached_insight(st.session_state['stats_dict'], "Actions")
+                if "429" in result or "quota" in result.lower():
+                    st.warning("⚠️ **Demo Quota Exceeded:** Please wait 60 seconds or restart the app.")
+                else:
+                    st.session_state['action_result'] = result
+                    st.rerun()
         
-        # Show Content
-        content = st.session_state['action_result']
-        st.markdown(f'<div class="insight-box insight-actions">{content}</div>', unsafe_allow_html=True)
+        if st.session_state['action_result']:
+            st.markdown(f'<div class="insight-box insight-actions">{st.session_state["action_result"]}</div>', unsafe_allow_html=True)
 
 else:
     # Empty State

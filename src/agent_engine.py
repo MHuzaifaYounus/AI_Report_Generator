@@ -17,12 +17,14 @@ external_client = AsyncOpenAI(
 
 # Configure the Model Adapter
 model = OpenAIChatCompletionsModel(
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     openai_client=external_client,
 )
 
 run_config = RunConfig(
     model=model,
+    tracing_disabled=True,
+    
 )
 
 # 2. DEFINE DYNAMIC INSTRUCTIONS
