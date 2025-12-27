@@ -163,6 +163,7 @@ with st.sidebar:
         st.info("Upload a file to begin.")
 
 # --- MAIN LOGIC ---
+# --- MAIN LOGIC ---
 if uploaded_file is not None:
     file_id = f"{uploaded_file.name}_{uploaded_file.size}"
     if st.session_state['stats_dict'] is None or file_id != st.session_state.get('uploaded_file_id'):
@@ -178,6 +179,13 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f"Error: {e}")
 
+# --- FIX: CLEAR STATE IF FILE REMOVED ---
+else:
+    # If the user removes the file, clear the internal memory
+    st.session_state['stats_dict'] = None
+    st.session_state['trend_result'] = None
+    st.session_state['anomaly_result'] = None
+    st.session_state['action_result'] = None
 # --- DASHBOARD LAYOUT ---
 
 # 1. HEADER
